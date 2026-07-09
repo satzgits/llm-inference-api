@@ -14,7 +14,7 @@ class GenerateResponse(BaseModel):
     inference_time_ms: float
 
 class EmbedRequest(BaseModel):
-    input: str
+    input: str = Field(..., min_length=1, description="Text to embed")
     model: Optional[str] = None
 
 class EmbedResponse(BaseModel):

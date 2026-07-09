@@ -1,12 +1,12 @@
 """
-Tests for the LLM Inference API — validates routes, schemas, and error handling.
-Uses FastAPI TestClient so no server process is needed.
+Tests for the LLM Inference API — uses unittest.mock to avoid hitting real Ollama.
 """
 
 import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+from unittest.mock import patch, MagicMock
 from fastapi.testclient import TestClient
 from app.main import app
 
@@ -14,14 +14,22 @@ client = TestClient(app)
 
 
 def test_health_endpoint():
+    """GET /health should return status even when Ollama is down."""
     response = client.get("/health")
     assert response.status_code == 200
     data = response.json()
     assert "status" in data
-    assert data["status"] == "ok"
 
 
-def test_generate_endpoint():
+@patch("app.main.httpx.post")
+def test_generate_endpoint(mock_post):
+    """POST /generate should return structured response when Ollama works."""
+    mock_response = MagicMock()
+    mock_response.json.return_value = {
+        "message": {"content": "Hello! How can I help you today?"}
+    }
+    mock_post.return_value = mock_response
+
     response = client.post("/generate", json={
         "prompt": "Hello",
         "max_tokens": 10,
@@ -31,15 +39,17 @@ def test_generate_endpoint():
     data = response.json()
     assert "response" in data
     assert "tokens_used" in data
-    assert "latency_ms" in data
+    assert "inference_time_ms" in data
 
 
 def test_generate_missing_prompt():
+    """POST /generate without prompt should return 422."""
     response = client.post("/generate", json={})
-    assert response.status_code == 422  # validation error
+    assert response.status_code == 422
 
 
 def test_generate_invalid_temperature():
+    """Temperature out of range should return 422."""
     response = client.post("/generate", json={
         "prompt": "Hello",
         "temperature": 5.0
@@ -48,6 +58,7 @@ def test_generate_invalid_temperature():
 
 
 def test_generate_negative_max_tokens():
+    """Negative max_tokens should return 422."""
     response = client.post("/generate", json={
         "prompt": "Hello",
         "max_tokens": -5
@@ -55,9 +66,17 @@ def test_generate_negative_max_tokens():
     assert response.status_code == 422
 
 
-def test_embed_endpoint():
+@patch("app.main.httpx.post")
+def test_embed_endpoint(mock_post):
+    """POST /embed should return embedding vector when Ollama works."""
+    mock_response = MagicMock()
+    mock_response.json.return_value = {
+        "embedding": [0.1, 0.2, 0.3, 0.4, 0.5]
+    }
+    mock_post.return_value = mock_response
+
     response = client.post("/embed", json={
-        "text": "Sample text to embed"
+        "input": "Sample text"
     })
     assert response.status_code == 200
     data = response.json()
@@ -66,32 +85,47 @@ def test_embed_endpoint():
 
 
 def test_embed_empty_text():
-    response = client.post("/embed", json={
-        "text": ""
-    })
+    """Empty input text should return 422."""
+    response = client.post("/embed", json={"input": ""})
     assert response.status_code == 422
 
 
 def test_unrecognized_endpoint():
+    """Unknown route should return 404."""
     response = client.get("/nonexistent")
     assert response.status_code == 404
 
 
+@patch("app.main.httpx.post")
+def test_generate_ollama_timeout(mock_post):
+    """Ollama timeout should return 504."""
+    from httpx import TimeoutException
+    mock_post.side_effect = TimeoutException("Timed out")
+
+    response = client.post("/generate", json={
+        "prompt": "Hello",
+        "max_tokens": 10
+    })
+    assert response.status_code == 504
+
+
 if __name__ == "__main__":
     test_health_endpoint()
-    print("✓ test_health_endpoint")
+    print("[OK] test_health_endpoint")
     test_generate_endpoint()
-    print("✓ test_generate_endpoint")
+    print("[OK] test_generate_endpoint")
     test_generate_missing_prompt()
-    print("✓ test_generate_missing_prompt")
+    print("[OK] test_generate_missing_prompt")
     test_generate_invalid_temperature()
-    print("✓ test_generate_invalid_temperature")
+    print("[OK] test_generate_invalid_temperature")
     test_generate_negative_max_tokens()
-    print("✓ test_generate_negative_max_tokens")
+    print("[OK] test_generate_negative_max_tokens")
     test_embed_endpoint()
-    print("✓ test_embed_endpoint")
+    print("[OK] test_embed_endpoint")
     test_embed_empty_text()
-    print("✓ test_embed_empty_text")
+    print("[OK] test_embed_empty_text")
     test_unrecognized_endpoint()
-    print("✓ test_unrecognized_endpoint")
+    print("[OK] test_unrecognized_endpoint")
+    test_generate_ollama_timeout()
+    print("[OK] test_generate_ollama_timeout")
     print("\nAll API tests passed.")

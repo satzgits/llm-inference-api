@@ -1,5 +1,6 @@
 import time
 import logging
+from contextlib import asynccontextmanager
 import httpx
 from fastapi import FastAPI, HTTPException
 from app.config import settings
@@ -12,12 +13,13 @@ from app.models import (
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title=settings.app_name, version="1.0.0")
-
-@app.on_event("startup")
-def startup():
+@asynccontextmanager
+async def lifespan(app: FastAPI):
     logger.info(f"Starting {settings.app_name}")
     logger.info(f"Ollama host: {settings.ollama_host}")
+    yield
+
+app = FastAPI(title=settings.app_name, version="1.0.0", lifespan=lifespan)
 
 @app.get("/health", response_model=HealthResponse)
 def health_check():
