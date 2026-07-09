@@ -23,10 +23,15 @@ llm-inference-api/
 │   ├── main.py              # FastAPI routes + logic
 │   ├── models.py            # Pydantic request/response schemas
 │   └── config.py            # Settings (model name, Ollama host)
+├── tests/
+│   ├── __init__.py
+│   └── test_api.py          # Pytest suite (FastAPI TestClient)
 ├── Dockerfile
 ├── docker-compose.yml
+├── Makefile                 # install, run, test, docker
+├── pyproject.toml           # Project metadata + pytest config
 ├── requirements.txt
-├── test_client.py
+├── test_client.py           # Manual integration test script
 └── README.md
 ```
 
@@ -37,9 +42,12 @@ llm-inference-api/
 pip install -r requirements.txt
 
 # Start the API
-uvicorn app.main:app --host 0.0.0.0 --port 8000
+make run
 
-# Test it
+# Run tests
+make test
+
+# Test manually
 python test_client.py
 ```
 
