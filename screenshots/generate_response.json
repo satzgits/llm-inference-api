@@ -1,0 +1,6 @@
+{
+  "response": "Supervised learning is a machine learning approach where a model learns to map inputs to outputs by training on a labeled dataset, with the goal of making accurate predictions on new, unseen data.",
+  "model": "qwen3",
+  "tokens_used": 33,
+  "inference_time_ms": 81116.05
+}

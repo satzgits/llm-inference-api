@@ -121,4 +121,38 @@ Running `ollama run qwen3` works fine for chatting. But when I wanted to call th
 
 Open `http://localhost:8000/docs` in your browser — FastAPI generates interactive Swagger docs where you can test every endpoint directly. That's the screenshot below.
 
-> **Want the screenshot?** Start the server (`make run`), open `http://localhost:8000/docs`, and take a screenshot. Drop it in `screenshots/swagger_docs.png`.
+## Real Output
+
+### Health Check
+`ash
+$ curl http://localhost:8008/health
+{"status":"healthy","model_loaded":true,"ollama_connected":true}
+``n
+### Generate
+
+``bash
+$ curl -X POST http://localhost:8008/generate -H "Content-Type: application/json" -d '{"prompt":"What is quantum computing in 2 sentences?","temperature":0.1}'
+
+Response: "Quantum computing is a type of computing that leverages the principles of quantum mechanics..."
+``n
+### Swagger Docs
+Open http://localhost:8008/docs for interactive API testing.
+
+
+## Real Output
+
+### Health Check
+`ash
+$ curl http://localhost:8008/health
+{"status":"healthy","model_loaded":true,"ollama_connected":true}
+``n
+### Generate
+
+``bash
+$ curl -X POST http://localhost:8008/generate -H "Content-Type: application/json" -d '{"prompt":"What is quantum computing in 2 sentences?","temperature":0.1}'
+
+Response: "Quantum computing is a type of computing that leverages the principles of quantum mechanics..."
+``n
+### Swagger Docs
+Open http://localhost:8008/docs for interactive API testing.
+

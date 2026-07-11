@@ -41,13 +41,17 @@ def generate(request: GenerateRequest):
     temperature = request.temperature or settings.default_temperature
     max_tokens = request.max_tokens or settings.default_max_tokens
 
+    # Qwen 3's thinking/CoT mechanism consumes tokens from num_predict.
+    # If max_tokens isn't set by the user, omit num_predict so Ollama decides.
+    options = {"temperature": temperature}
+    if request.max_tokens is not None:
+        # Double the budget so thinking doesn't eat the entire response
+        options["num_predict"] = max_tokens * 2
+
     payload = {
         "model": model,
         "messages": [{"role": "user", "content": request.prompt}],
-        "options": {
-            "temperature": temperature,
-            "num_predict": max_tokens
-        },
+        "options": options,
         "stream": False
     }
 
@@ -73,6 +77,11 @@ def generate(request: GenerateRequest):
     elapsed_ms = (time.perf_counter() - start) * 1000
     response_text = result.get("message", {}).get("content", "")
     tokens = len(response_text.split())
+
+    if not response_text:
+        logger.warning(f"Empty response from Ollama. Result keys: {list(result.keys())}")
+        if "message" in result:
+            logger.warning(f"Message keys: {list(result.get('message', {}).keys())}")
 
     logger.info(f"Generate: {elapsed_ms:.0f}ms, {tokens} tokens, model={model}")
 
