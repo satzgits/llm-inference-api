@@ -1,8 +1,9 @@
 import time
+import uuid
 import logging
 from contextlib import asynccontextmanager
 import httpx
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from app.config import settings
 from app.models import (
     GenerateRequest, GenerateResponse,
@@ -20,6 +21,13 @@ async def lifespan(app: FastAPI):
     yield
 
 app = FastAPI(title=settings.app_name, version="1.0.0", lifespan=lifespan)
+
+@app.middleware("http")
+async def add_request_id(request: Request, call_next):
+    request_id = request.headers.get("X-Request-ID", str(uuid.uuid4())[:8])
+    response = await call_next(request)
+    response.headers["X-Request-ID"] = request_id
+    return response
 
 @app.get("/health", response_model=HealthResponse)
 def health_check():
