@@ -8,7 +8,7 @@ from app.config import settings
 from app.models import (
     GenerateRequest, GenerateResponse,
     EmbedRequest, EmbedResponse,
-    HealthResponse
+    HealthResponse, ModelsResponse, ModelDetail
 )
 
 logging.basicConfig(level=logging.INFO)
@@ -42,6 +42,25 @@ def health_check():
         model_loaded=ollama_ok,
         ollama_connected=ollama_ok
     )
+
+@app.get("/models", response_model=ModelsResponse)
+def list_models():
+    try:
+        resp = httpx.get(f"{settings.ollama_host}/api/tags", timeout=5.0)
+        resp.raise_for_status()
+    except Exception as e:
+        logger.error(f"Failed to list models: {e}")
+        raise HTTPException(502, "Ollama not reachable")
+    models = [
+        ModelDetail(
+            name=m.get("name", "unknown"),
+            digest=m.get("digest", "")[:12],
+            size_bytes=m.get("size", 0),
+            modified_at=m.get("modified_at", ""),
+        )
+        for m in resp.json().get("models", [])
+    ]
+    return ModelsResponse(models=sorted(models, key=lambda m: m.name), count=len(models))
 
 @app.post("/generate", response_model=GenerateResponse)
 def generate(request: GenerateRequest):

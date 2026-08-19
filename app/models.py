@@ -26,3 +26,13 @@ class HealthResponse(BaseModel):
     status: str
     model_loaded: bool
     ollama_connected: bool
+
+class ModelDetail(BaseModel):
+    name: str
+    digest: str
+    size_bytes: int
+    modified_at: str
+
+class ModelsResponse(BaseModel):
+    models: list[ModelDetail]
+    count: int

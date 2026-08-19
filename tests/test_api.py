@@ -109,6 +109,35 @@ def test_generate_ollama_timeout(mock_post):
     assert response.status_code == 504
 
 
+@patch("app.main.httpx.get")
+def test_models_endpoint(mock_get):
+    """GET /models should list available Ollama models."""
+    mock_response = MagicMock()
+    mock_response.json.return_value = {
+        "models": [
+            {"name": "qwen3:latest", "digest": "abc123", "size": 4096000000, "modified_at": "2026-01-01"},
+            {"name": "llama3:latest", "digest": "def456", "size": 4700000000, "modified_at": "2026-01-02"}
+        ]
+    }
+    mock_get.return_value = mock_response
+
+    response = client.get("/models")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["count"] == 2
+    assert data["models"][0]["name"] == "llama3:latest"
+
+
+@patch("app.main.httpx.get")
+def test_models_endpoint_ollama_down(mock_get):
+    """GET /models when Ollama is unreachable should return 502."""
+    from httpx import ConnectError
+    mock_get.side_effect = ConnectError("Connection refused")
+
+    response = client.get("/models")
+    assert response.status_code == 502
+
+
 if __name__ == "__main__":
     test_health_endpoint()
     print("[OK] test_health_endpoint")
@@ -128,4 +157,8 @@ if __name__ == "__main__":
     print("[OK] test_unrecognized_endpoint")
     test_generate_ollama_timeout()
     print("[OK] test_generate_ollama_timeout")
+    test_models_endpoint()
+    print("[OK] test_models_endpoint")
+    test_models_endpoint_ollama_down()
+    print("[OK] test_models_endpoint_ollama_down")
     print("\nAll API tests passed.")
