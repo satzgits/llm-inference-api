@@ -9,8 +9,32 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from unittest.mock import patch, MagicMock
 from fastapi.testclient import TestClient
 from app.main import app
+from app.config import Settings
 
 client = TestClient(app)
+
+
+def test_config_defaults_are_valid():
+    """Default settings should pass validation."""
+    s = Settings()
+    assert s.validate() == []
+    assert s.ollama_base().endswith("11434") or "localhost" in s.ollama_base()
+
+
+def test_config_rejects_bad_host():
+    """A malformed Ollama URL should be flagged by validation."""
+    s = Settings(ollama_host="not-a-url")
+    assert any("http" in e for e in s.validate())
+
+
+def test_config_rejects_bad_temperature():
+    s = Settings(default_temperature=5.0)
+    assert any("temperature" in e for e in s.validate())
+
+
+def test_config_rejects_negative_max_tokens():
+    s = Settings(default_max_tokens=-1)
+    assert any("max_tokens" in e for e in s.validate())
 
 
 def test_health_endpoint():

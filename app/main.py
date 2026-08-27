@@ -17,6 +17,11 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info(f"Starting {settings.app_name}")
+    cfg_errors = settings.validate()
+    if cfg_errors:
+        logger.warning("Configuration issues: " + "; ".join(cfg_errors))
+    else:
+        logger.info("Configuration OK")
     logger.info(f"Ollama host: {settings.ollama_host}")
     yield
 
